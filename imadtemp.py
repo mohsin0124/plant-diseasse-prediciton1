@@ -74,104 +74,32 @@ def model_prediction(test_image):
     predictions = model.predict(input_arr)
     return np.argmax(predictions)  # Return index of max element
 
-# Function to fetch weather data using AccuWeather API
+# Function to get weather data using hardcoded data
 def get_weather_data(location):
-    api_key = os.environ.get("OPENWEATHER_API_KEY")
-    accuweather_api_key = os.environ.get("ACCUWEATHER_API_KEY")
+    # Simplified version using only hardcoded data
+    major_cities = {
+        "hyderabad": {"temperature": 28, "humidity": 65, "description": "Partly cloudy"},
+        "mumbai": {"temperature": 30, "humidity": 75, "description": "Humid"},
+        "delhi": {"temperature": 32, "humidity": 60, "description": "Sunny"},
+        "bangalore": {"temperature": 26, "humidity": 70, "description": "Partly cloudy"},
+        "chennai": {"temperature": 31, "humidity": 80, "description": "Humid"},
+        "kolkata": {"temperature": 29, "humidity": 75, "description": "Cloudy"},
+        "pune": {"temperature": 27, "humidity": 60, "description": "Clear"},
+        "ahmedabad": {"temperature": 33, "humidity": 55, "description": "Sunny"},
+        "jaipur": {"temperature": 34, "humidity": 50, "description": "Hot"},
+        "lucknow": {"temperature": 31, "humidity": 65, "description": "Partly cloudy"}
+    }
     
-    if accuweather_api_key == "YOUR_ACCUWEATHER_API_KEY":
-        # Skip AccuWeather API and go directly to OpenWeather API
-        # Try with OpenWeather API
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
-        response = requests.get(url)
-        
-        if response.status_code != 200 and "hyderabad" not in location.lower():
-            location_with_city = f"{location}, Hyderabad"
-            url = f"http://api.openweathermap.org/data/2.5/weather?q={location_with_city}&appid={api_key}&units=metric"
-            response = requests.get(url)
-            
-        if response.status_code == 200:
-            data = response.json()
-            return {
-                "temperature": data["main"]["temp"],
-                "humidity": data["main"]["humidity"],
-                "description": data["weather"][0]["description"],
-                "wind_speed": data["wind"]["speed"],
-                "pressure": data["main"]["pressure"],
-                "visibility": data.get("visibility", 10000) / 1000,  # Convert to km
-                "clouds": data["clouds"]["all"],
-                "rain": data.get("rain", {}).get("1h", 0),
-                "snow": data.get("snow", {}).get("1h", 0)
-            }
-        else:
-            # If both APIs fail, return hardcoded data for major Indian cities
-            major_cities = {
-                "hyderabad": {"temperature": 28, "humidity": 65, "description": "Partly cloudy"},
-                "mumbai": {"temperature": 30, "humidity": 75, "description": "Humid"},
-                "delhi": {"temperature": 32, "humidity": 60, "description": "Sunny"},
-                "bangalore": {"temperature": 26, "humidity": 70, "description": "Partly cloudy"},
-                "chennai": {"temperature": 31, "humidity": 80, "description": "Humid"}
-            }
-            
-            city = location.lower()
-            for major_city in major_cities:
-                if major_city in city:
-                    return major_cities[major_city]
-            
-            # Default values if no match found
-            return {"temperature": 28, "humidity": 65, "description": "Partly cloudy"}
-    else:
-        # If AccuWeather API key is set, try to use it
-        try:
-            # First, get location key
-            location_url = f"http://dataservice.accuweather.com/locations/v1/cities/search?apikey={accuweather_api_key}&q={location}"
-            location_response = requests.get(location_url)
-            
-            if location_response.status_code == 200:
-                location_data = location_response.json()
-                if location_data:
-                    location_key = location_data[0]["Key"]
-                    
-                    # Then get weather data
-                    weather_url = f"http://dataservice.accuweather.com/currentconditions/v1/{location_key}?apikey={accuweather_api_key}"
-                    weather_response = requests.get(weather_url)
-                    
-                    if weather_response.status_code == 200:
-                        weather_data = weather_response.json()[0]
-                        return {
-                            "temperature": weather_data["Temperature"]["Metric"]["Value"],
-                            "humidity": weather_data["RelativeHumidity"],
-                            "description": weather_data["WeatherText"],
-                            "wind_speed": weather_data["Wind"]["Speed"]["Metric"]["Value"],
-                            "pressure": weather_data["Pressure"]["Metric"]["Value"],
-                            "visibility": weather_data["Visibility"]["Metric"]["Value"],
-                            "clouds": weather_data["CloudCover"],
-                            "rain": weather_data.get("PrecipitationSummary", {}).get("PastHour", {}).get("Metric", {}).get("Value", 0),
-                            "snow": 0  # AccuWeather doesn't provide snow data in current conditions
-                        }
-        except Exception as e:
-            st.error(f"Error fetching weather data: {str(e)}")
-        
-        # If AccuWeather fails, fall back to OpenWeather
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
-        response = requests.get(url)
-        
-        if response.status_code == 200:
-            data = response.json()
-            return {
-                "temperature": data["main"]["temp"],
-                "humidity": data["main"]["humidity"],
-                "description": data["weather"][0]["description"],
-                "wind_speed": data["wind"]["speed"],
-                "pressure": data["main"]["pressure"],
-                "visibility": data.get("visibility", 10000) / 1000,
-                "clouds": data["clouds"]["all"],
-                "rain": data.get("rain", {}).get("1h", 0),
-                "snow": data.get("snow", {}).get("1h", 0)
-            }
-        else:
-            # If both APIs fail, return hardcoded data
-            return {"temperature": 28, "humidity": 65, "description": "Partly cloudy"}
+    # Convert location to lowercase for case-insensitive matching
+    location = location.lower()
+    
+    # Check if the location matches any major city
+    for city in major_cities:
+        if city in location:
+            return major_cities[city]
+    
+    # Default values if no match found
+    return {"temperature": 28, "humidity": 65, "description": "Partly cloudy"}
 
 # Function to get treatment suggestion from Groq API
 def get_treatment_suggestion(disease_name):
@@ -838,15 +766,11 @@ elif app_mode == get_text("weather_monitoring", "Weather Monitoring"):
         if st.button(get_text("get_weather", "Get Weather"), key="get_weather_button"):
             if location:
                 with st.spinner(get_text("fetching_weather", "Fetching weather data...")):
-                    weather_data, actual_location = get_weather_data(location)
+                    weather_data = get_weather_data(location)
     
     # Display weather information if available
     if 'weather_data' in locals() and weather_data:
         with col2:
-            # If we used a fallback location, inform the user
-            if actual_location != location:
-                st.info(get_text("location_fallback", f"Weather data for '{location}' was not found. Showing data for '{actual_location}' instead."))
-            
             # Create a nice weather card
             st.markdown(f"""
             <div style="padding: 20px; border-radius: 10px; background-color: rgba(13, 43, 13, 0.7); border: 2px solid #00ff00;">
@@ -889,7 +813,7 @@ elif app_mode == get_text("weather_monitoring", "Weather Monitoring"):
                 st.write(get_text("high_temp_recommendation", "High temperature alert: Water plants more frequently and provide shade during peak hours."))
             elif temperature < 15:
                 st.write(get_text("low_temp_recommendation", "Low temperature alert: Protect sensitive plants from frost and reduce watering frequency."))
-        else:
+            else:
                 st.write(get_text("normal_temp_recommendation", "Temperature is within the optimal range for most plants."))
             
             # Humidity-based recommendations
@@ -899,10 +823,7 @@ elif app_mode == get_text("weather_monitoring", "Weather Monitoring"):
                 st.write(get_text("low_humidity_recommendation", "Low humidity alert: Increase humidity for indoor plants and mist leaves regularly."))
             else:
                 st.write(get_text("normal_humidity_recommendation", "Humidity levels are suitable for most plants."))
-    elif 'weather_data' in locals() and weather_data is None:
-        st.error(get_text("weather_error", f"Could not fetch weather data for '{location}'. Please try a larger city or check the spelling."))
 
-            
 # Prediction Page
 elif app_mode == get_text("disease_recognition", "Disease Recognition"):
     st.header(get_text("disease_recognition", "Disease Recognition"))
