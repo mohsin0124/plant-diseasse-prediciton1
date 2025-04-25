@@ -80,13 +80,9 @@ def model_prediction(test_image):
 # Function to get weather data using OpenWeather API
 def get_weather_data(location):
     try:
-        # Get OpenWeather API key from environment variable
-        api_key = os.environ.get("012ef47845678a992ebd6f731235e756")
+        # Use the provided OpenWeather API key
+        api_key = "012ef47845678a992ebd6f731235e756"
         
-        if not api_key:
-            st.error("OpenWeather API key not found. Please add it to your environment variables.")
-            return None
-            
         # First try with the exact location
         url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
         response = requests.get(url)
@@ -107,15 +103,12 @@ def get_weather_data(location):
         if response.status_code == 200:
             data = response.json()
             return {
-                "temperature": data["main"]["temp"],
-                "humidity": data["main"]["humidity"],
-                "description": data["weather"][0]["description"],
-                "wind_speed": data["wind"]["speed"],
-                "pressure": data["main"]["pressure"],
-                "visibility": data.get("visibility", 10000) / 1000,  # Convert to km
-                "clouds": data["clouds"]["all"],
-                "rain": data.get("rain", {}).get("1h", 0),
-                "snow": data.get("snow", {}).get("1h", 0)
+                "name": data["name"],
+                "main": {
+                    "temp": data["main"]["temp"],
+                    "humidity": data["main"]["humidity"]
+                },
+                "weather": [{"description": data["weather"][0]["description"]}]
             }
         else:
             st.error(f"Could not find weather data for '{location}'. Please try a nearby city or check the spelling.")
