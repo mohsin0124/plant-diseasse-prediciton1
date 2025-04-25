@@ -9,10 +9,13 @@ import os
 import requests
 from deep_translator import GoogleTranslator
 
-# Initialize Groq client with your API key
-client = Groq(
-    api_key="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",  # Your provided API key
-)
+# Initialize Groq client with proper error handling
+try:
+    GROQ_API_KEY = "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"
+    client = Groq(api_key=GROQ_API_KEY, timeout=30)  # Added timeout parameter
+except Exception as e:
+    st.error(f"Error initializing Groq client: {str(e)}")
+    client = None
 
 # Add language selection at the top
 languages = {
@@ -78,7 +81,7 @@ def model_prediction(test_image):
 def get_weather_data(location):
     try:
         # Get OpenWeather API key from environment variable
-        api_key = os.environ.get("9ad6bd90b1ef6362477d068f8960cbab")
+        api_key = os.environ.get("012ef47845678a992ebd6f731235e756")
         
         if not api_key:
             st.error("OpenWeather API key not found. Please add it to your environment variables.")
@@ -123,20 +126,22 @@ def get_weather_data(location):
         return None
 
 # Function to get treatment suggestion from Groq API
-def get_treatment_suggestion(disease_name):
-    # Messages to send to Groq API (LLaMA model or Mixtral model)
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
+def get_treatment_suggestion(disease_name, symptoms="", weather_data=None):
+    if client is None:
+        return "Error: Groq API client not initialized. Please check your API key."
         
-        {"role": "user", "content": f"recomend 5 retail Agro Farms nearby vasavi college of engineering ,ibrahimbagh ,hydereabad .add the distant how far is it. only give shop names and distant in km, "},
-                                       
-        ]
-    
     try:
+        # Messages to send to Groq API
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"recomend 5 retail Agro Farms nearby vasavi college of engineering ,ibrahimbagh ,hydereabad .add the distant how far is it. only give shop names and distant in km"}
+        ]
+        
         # Chat completion using Groq's Mixtral model
         chat_completion = client.chat.completions.create(
             messages=messages,
-            model="llama-3.3-70b-versatile",  # Adjust as per Groq's available models   mixtral-8x7b-32768
+            model="llama-3.3-70b-versatile",
+            timeout=30  # Added timeout parameter
         )
         return chat_completion.choices[0].message.content.strip()
     
@@ -145,24 +150,26 @@ def get_treatment_suggestion(disease_name):
 
 # Function to get treatment suggestion from Groq API
 def get_treatment_suggestion1(disease_name):
-    # Messages to send to Groq API (LLaMA model or Mixtral model)
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        #{"role": "user", "content": f"recomend 5 medicines to cure this {disease_name} disease. give me in point"},
-        {"role": "user", "content": f"recomend 3 medicines to cure this {disease_name} disease and give cost of it. give me in boldpoint only only point"}
-    ]
-    
+    if client is None:
+        return "Error: Groq API client not initialized. Please check your API key."
+        
     try:
+        # Messages to send to Groq API
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"recomend 3 medicines to cure this {disease_name} disease and give cost of it. give me in boldpoint only only point"}
+        ]
+        
         # Chat completion using Groq's Mixtral model
         chat_completion = client.chat.completions.create(
             messages=messages,
-            model="llama-3.3-70b-versatile",  # Adjust as per Groq's available models
+            model="llama-3.3-70b-versatile",
+            timeout=30  # Added timeout parameter
         )
         return chat_completion.choices[0].message.content.strip()
     
     except Exception as e:
         return f"Error: Unable to connect to Groq API. Exception: {str(e)}"
-
 
 # Function to get nearby shops using LLaMA AI
 def get_nearby_shops(disease, location):
@@ -879,7 +886,7 @@ elif app_mode == get_text("disease_recognition", "Disease Recognition"):
         st.success(get_text("model_prediction", f"Model Prediction: {predicted_disease}"))
         
         # Get cure suggestion using Groq's API
-        treatment_suggestion = get_treatment_suggestion(predicted_disease)
+        treatment_suggestion = get_treatment_suggestion(predicted_disease)  # Removed weather_data parameter
         st.write(get_text("suggested_farms", f"Suggested nearby Agro Farms for {predicted_disease}: {treatment_suggestion}"))
 
         treatment_suggestion1 = get_treatment_suggestion1(predicted_disease)
