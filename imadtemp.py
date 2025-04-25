@@ -9,10 +9,13 @@ import os
 import requests
 from deep_translator import GoogleTranslator
 
-# Initialize Groq client with your API key
-client = Groq(
-    api_key="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",  # Your provided API key
-)
+# Initialize Groq client with proper error handling
+try:
+    GROQ_API_KEY = "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"
+    client = Groq(api_key=GROQ_API_KEY)
+except Exception as e:
+    st.error(f"Error initializing Groq client: {str(e)}")
+    client = None
 
 # Add language selection at the top
 languages = {
@@ -123,16 +126,19 @@ def get_weather_data(location):
         return None
 
 # Function to get treatment suggestion from Groq API
-def get_treatment_suggestion(disease_name):
-    # Messages to send to Groq API (LLaMA model or Mixtral model)
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
+def get_treatment_suggestion(disease_name, symptoms, weather_data=None):
+    if client is None:
+        return "Error: Groq API client not initialized. Please check your API key."
         
-        {"role": "user", "content": f"recomend 5 retail Agro Farms nearby vasavi college of engineering ,ibrahimbagh ,hydereabad .add the distant how far is it. only give shop names and distant in km, "},
+    try:
+        # Messages to send to Groq API (LLaMA model or Mixtral model)
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            
+            {"role": "user", "content": f"recomend 5 retail Agro Farms nearby vasavi college of engineering ,ibrahimbagh ,hydereabad .add the distant how far is it. only give shop names and distant in km, "},
                                        
         ]
-    
-    try:
+        
         # Chat completion using Groq's Mixtral model
         chat_completion = client.chat.completions.create(
             messages=messages,
@@ -879,7 +885,7 @@ elif app_mode == get_text("disease_recognition", "Disease Recognition"):
         st.success(get_text("model_prediction", f"Model Prediction: {predicted_disease}"))
         
         # Get cure suggestion using Groq's API
-        treatment_suggestion = get_treatment_suggestion(predicted_disease)
+        treatment_suggestion = get_treatment_suggestion(predicted_disease, "", weather_data)
         st.write(get_text("suggested_farms", f"Suggested nearby Agro Farms for {predicted_disease}: {treatment_suggestion}"))
 
         treatment_suggestion1 = get_treatment_suggestion1(predicted_disease)
