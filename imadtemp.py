@@ -75,62 +75,51 @@ def model_prediction(test_image):
     return np.argmax(predictions)  # Return index of max element
 
 # Function to fetch weather data using AccuWeather API
-def get_weather_data(location, api_key="9f36996dbcf80db71dcbec83d14459f0"):
-    # AccuWeather API implementation
-    accuweather_api_key = "YOUR_ACCUWEATHER_API_KEY"  # Replace with your AccuWeather API key
+def get_weather_data(location):
+    api_key = os.environ.get("OPENWEATHER_API_KEY")
+    accuweather_api_key = os.environ.get("ACCUWEATHER_API_KEY")
     
-    # Check if AccuWeather API key is set
     if accuweather_api_key == "YOUR_ACCUWEATHER_API_KEY":
         # Skip AccuWeather API and go directly to OpenWeather API
         # Try with OpenWeather API
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
-    response = requests.get(url)
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
+        response = requests.get(url)
         
-        # If the location is not found, try appending "Hyderabad" to the location
         if response.status_code != 200 and "hyderabad" not in location.lower():
             location_with_city = f"{location}, Hyderabad"
             url = f"http://api.openweathermap.org/data/2.5/weather?q={location_with_city}&appid={api_key}&units=metric"
             response = requests.get(url)
             
-            # If still not found, try with just "Hyderabad"
-            if response.status_code != 200:
-                url = f"http://api.openweathermap.org/data/2.5/weather?q=Hyderabad&appid={api_key}&units=metric"
-                response = requests.get(url)
-                if response.status_code == 200:
-                    return response.json(), "Hyderabad"  # Return the data and the fallback location
-        
-    if response.status_code == 200:
-            return response.json(), location
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "temperature": data["main"]["temp"],
+                "humidity": data["main"]["humidity"],
+                "description": data["weather"][0]["description"],
+                "wind_speed": data["wind"]["speed"],
+                "pressure": data["main"]["pressure"],
+                "visibility": data.get("visibility", 10000) / 1000,  # Convert to km
+                "clouds": data["clouds"]["all"],
+                "rain": data.get("rain", {}).get("1h", 0),
+                "snow": data.get("snow", {}).get("1h", 0)
+            }
         else:
-            # If OpenWeather API fails, use a hardcoded weather service for major Indian cities
+            # If both APIs fail, return hardcoded data for major Indian cities
             major_cities = {
-                "hyderabad": {"temp": 30, "humidity": 65, "description": "Partly cloudy"},
-                "mumbai": {"temp": 32, "humidity": 75, "description": "Humid"},
-                "delhi": {"temp": 35, "humidity": 40, "description": "Hot"},
-                "bangalore": {"temp": 28, "humidity": 60, "description": "Pleasant"},
-                "chennai": {"temp": 33, "humidity": 70, "description": "Humid"},
-                "kolkata": {"temp": 34, "humidity": 70, "description": "Humid"},
-                "pune": {"temp": 29, "humidity": 55, "description": "Pleasant"},
-                "ahmedabad": {"temp": 36, "humidity": 45, "description": "Hot"},
-                "jaipur": {"temp": 37, "humidity": 35, "description": "Very hot"},
-                "lucknow": {"temp": 36, "humidity": 40, "description": "Hot"}
+                "hyderabad": {"temperature": 28, "humidity": 65, "description": "Partly cloudy"},
+                "mumbai": {"temperature": 30, "humidity": 75, "description": "Humid"},
+                "delhi": {"temperature": 32, "humidity": 60, "description": "Sunny"},
+                "bangalore": {"temperature": 26, "humidity": 70, "description": "Partly cloudy"},
+                "chennai": {"temperature": 31, "humidity": 80, "description": "Humid"}
             }
             
-            # Check if the location is close to any major city
-            for city, weather in major_cities.items():
-                if city in location.lower():
-                    # Create a simple weather data structure
-                    weather_data = {
-                        "name": city.capitalize(),
-                        "main": {
-                            "temp": weather["temp"],
-                            "humidity": weather["humidity"]
-                        },
-                        "weather": [{"description": weather["description"]}]
-                    }
-                    return weather_data, city.capitalize()
+            city = location.lower()
+            for major_city in major_cities:
+                if major_city in city:
+                    return major_cities[major_city]
             
-            return None, location
+            # Default values if no match found
+            return {"temperature": 28, "humidity": 65, "description": "Partly cloudy"}
     else:
         # If AccuWeather API key is set, try to use it
         try:
