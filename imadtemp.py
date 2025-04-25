@@ -12,7 +12,7 @@ from deep_translator import GoogleTranslator
 # Initialize Groq client with proper error handling
 try:
     GROQ_API_KEY = "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"
-    client = Groq(api_key=GROQ_API_KEY, timeout=30)  # Added timeout parameter
+    client = Groq(api_key=GROQ_API_KEY)  # Removed timeout parameter
 except Exception as e:
     st.error(f"Error initializing Groq client: {str(e)}")
     client = None
@@ -126,7 +126,7 @@ def get_weather_data(location):
         return None
 
 # Function to get treatment suggestion from Groq API
-def get_treatment_suggestion(disease_name, symptoms="", weather_data=None):
+def get_treatment_suggestion(disease_name):
     if client is None:
         return "Error: Groq API client not initialized. Please check your API key."
         
@@ -140,8 +140,7 @@ def get_treatment_suggestion(disease_name, symptoms="", weather_data=None):
         # Chat completion using Groq's Mixtral model
         chat_completion = client.chat.completions.create(
             messages=messages,
-            model="llama-3.3-70b-versatile",
-            timeout=30  # Added timeout parameter
+            model="llama-3.3-70b-versatile"
         )
         return chat_completion.choices[0].message.content.strip()
     
@@ -163,8 +162,7 @@ def get_treatment_suggestion1(disease_name):
         # Chat completion using Groq's Mixtral model
         chat_completion = client.chat.completions.create(
             messages=messages,
-            model="llama-3.3-70b-versatile",
-            timeout=30  # Added timeout parameter
+            model="llama-3.3-70b-versatile"
         )
         return chat_completion.choices[0].message.content.strip()
     
