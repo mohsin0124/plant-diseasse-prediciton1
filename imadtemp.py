@@ -74,32 +74,53 @@ def model_prediction(test_image):
     predictions = model.predict(input_arr)
     return np.argmax(predictions)  # Return index of max element
 
-# Function to get weather data using hardcoded data
+# Function to get weather data using OpenWeather API
 def get_weather_data(location):
-    # Simplified version using only hardcoded data
-    major_cities = {
-        "hyderabad": {"temperature": 28, "humidity": 65, "description": "Partly cloudy"},
-        "mumbai": {"temperature": 30, "humidity": 75, "description": "Humid"},
-        "delhi": {"temperature": 32, "humidity": 60, "description": "Sunny"},
-        "bangalore": {"temperature": 26, "humidity": 70, "description": "Partly cloudy"},
-        "chennai": {"temperature": 31, "humidity": 80, "description": "Humid"},
-        "kolkata": {"temperature": 29, "humidity": 75, "description": "Cloudy"},
-        "pune": {"temperature": 27, "humidity": 60, "description": "Clear"},
-        "ahmedabad": {"temperature": 33, "humidity": 55, "description": "Sunny"},
-        "jaipur": {"temperature": 34, "humidity": 50, "description": "Hot"},
-        "lucknow": {"temperature": 31, "humidity": 65, "description": "Partly cloudy"}
-    }
-    
-    # Convert location to lowercase for case-insensitive matching
-    location = location.lower()
-    
-    # Check if the location matches any major city
-    for city in major_cities:
-        if city in location:
-            return major_cities[city]
-    
-    # Default values if no match found
-    return {"temperature": 28, "humidity": 65, "description": "Partly cloudy"}
+    try:
+        # Get OpenWeather API key from environment variable
+        api_key = os.environ.get("9ad6bd90b1ef6362477d068f8960cbab")
+        
+        if not api_key:
+            st.error("OpenWeather API key not found. Please add it to your environment variables.")
+            return None
+            
+        # First try with the exact location
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
+        response = requests.get(url)
+        
+        # If location not found, try with state name
+        if response.status_code != 200:
+            # Add common Indian states for better matching
+            states = ["Andhra Pradesh", "Telangana", "Maharashtra", "Karnataka", "Tamil Nadu", 
+                     "Kerala", "Delhi", "West Bengal", "Gujarat", "Rajasthan", "Uttar Pradesh"]
+            
+            for state in states:
+                location_with_state = f"{location}, {state}"
+                url = f"http://api.openweathermap.org/data/2.5/weather?q={location_with_state}&appid={api_key}&units=metric"
+                response = requests.get(url)
+                if response.status_code == 200:
+                    break
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "temperature": data["main"]["temp"],
+                "humidity": data["main"]["humidity"],
+                "description": data["weather"][0]["description"],
+                "wind_speed": data["wind"]["speed"],
+                "pressure": data["main"]["pressure"],
+                "visibility": data.get("visibility", 10000) / 1000,  # Convert to km
+                "clouds": data["clouds"]["all"],
+                "rain": data.get("rain", {}).get("1h", 0),
+                "snow": data.get("snow", {}).get("1h", 0)
+            }
+        else:
+            st.error(f"Could not find weather data for '{location}'. Please try a nearby city or check the spelling.")
+            return None
+            
+    except Exception as e:
+        st.error(f"Error fetching weather data: {str(e)}")
+        return None
 
 # Function to get treatment suggestion from Groq API
 def get_treatment_suggestion(disease_name):
