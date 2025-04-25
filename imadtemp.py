@@ -123,86 +123,55 @@ def get_weather_data(location):
     else:
         # If AccuWeather API key is set, try to use it
         try:
-            # First, get the location key for the given location
+            # First, get location key
             location_url = f"http://dataservice.accuweather.com/locations/v1/cities/search?apikey={accuweather_api_key}&q={location}"
             location_response = requests.get(location_url)
             
-            if location_response.status_code == 200 and location_response.json():
-                # Get the first location key
-                location_key = location_response.json()[0]['Key']
-                location_name = location_response.json()[0]['LocalizedName']
-                
-                # Now get the current conditions using the location key
-                conditions_url = f"http://dataservice.accuweather.com/currentconditions/v1/{location_key}?apikey={accuweather_api_key}&details=true"
-                conditions_response = requests.get(conditions_url)
-                
-                if conditions_response.status_code == 200:
-                    conditions_data = conditions_response.json()[0]
+            if location_response.status_code == 200:
+                location_data = location_response.json()
+                if location_data:
+                    location_key = location_data[0]["Key"]
                     
-                    # Format the data to match our expected structure
-                    weather_data = {
-                        "name": location_name,
-                        "main": {
-                            "temp": conditions_data['Temperature']['Metric']['Value'],
-                            "humidity": conditions_data['RelativeHumidity']
-                        },
-                        "weather": [{"description": conditions_data['WeatherText']}]
-                    }
-                    return weather_data, location_name
-            
-            # If AccuWeather API fails, fall back to OpenWeather API
-            # Try with OpenWeather API
-            url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
-            response = requests.get(url)
-            
-            # If the location is not found, try appending "Hyderabad" to the location
-            if response.status_code != 200 and "hyderabad" not in location.lower():
-                location_with_city = f"{location}, Hyderabad"
-                url = f"http://api.openweathermap.org/data/2.5/weather?q={location_with_city}&appid={api_key}&units=metric"
-                response = requests.get(url)
-                
-                # If still not found, try with just "Hyderabad"
-                if response.status_code != 200:
-                    url = f"http://api.openweathermap.org/data/2.5/weather?q=Hyderabad&appid={api_key}&units=metric"
-                    response = requests.get(url)
-                    if response.status_code == 200:
-                        return response.json(), "Hyderabad"  # Return the data and the fallback location
-            
-            if response.status_code == 200:
-                return response.json(), location
-            else:
-                # If both APIs fail, use a hardcoded weather service for major Indian cities
-                major_cities = {
-                    "hyderabad": {"temp": 30, "humidity": 65, "description": "Partly cloudy"},
-                    "mumbai": {"temp": 32, "humidity": 75, "description": "Humid"},
-                    "delhi": {"temp": 35, "humidity": 40, "description": "Hot"},
-                    "bangalore": {"temp": 28, "humidity": 60, "description": "Pleasant"},
-                    "chennai": {"temp": 33, "humidity": 70, "description": "Humid"},
-                    "kolkata": {"temp": 34, "humidity": 70, "description": "Humid"},
-                    "pune": {"temp": 29, "humidity": 55, "description": "Pleasant"},
-                    "ahmedabad": {"temp": 36, "humidity": 45, "description": "Hot"},
-                    "jaipur": {"temp": 37, "humidity": 35, "description": "Very hot"},
-                    "lucknow": {"temp": 36, "humidity": 40, "description": "Hot"}
-                }
-                
-                # Check if the location is close to any major city
-                for city, weather in major_cities.items():
-                    if city in location.lower():
-                        # Create a simple weather data structure
-                        weather_data = {
-                            "name": city.capitalize(),
-                            "main": {
-                                "temp": weather["temp"],
-                                "humidity": weather["humidity"]
-                            },
-                            "weather": [{"description": weather["description"]}]
+                    # Then get weather data
+                    weather_url = f"http://dataservice.accuweather.com/currentconditions/v1/{location_key}?apikey={accuweather_api_key}"
+                    weather_response = requests.get(weather_url)
+                    
+                    if weather_response.status_code == 200:
+                        weather_data = weather_response.json()[0]
+                        return {
+                            "temperature": weather_data["Temperature"]["Metric"]["Value"],
+                            "humidity": weather_data["RelativeHumidity"],
+                            "description": weather_data["WeatherText"],
+                            "wind_speed": weather_data["Wind"]["Speed"]["Metric"]["Value"],
+                            "pressure": weather_data["Pressure"]["Metric"]["Value"],
+                            "visibility": weather_data["Visibility"]["Metric"]["Value"],
+                            "clouds": weather_data["CloudCover"],
+                            "rain": weather_data.get("PrecipitationSummary", {}).get("PastHour", {}).get("Metric", {}).get("Value", 0),
+                            "snow": 0  # AccuWeather doesn't provide snow data in current conditions
                         }
-                        return weather_data, city.capitalize()
-            
-            return None, location
         except Exception as e:
             st.error(f"Error fetching weather data: {str(e)}")
-            return None, location
+        
+        # If AccuWeather fails, fall back to OpenWeather
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "temperature": data["main"]["temp"],
+                "humidity": data["main"]["humidity"],
+                "description": data["weather"][0]["description"],
+                "wind_speed": data["wind"]["speed"],
+                "pressure": data["main"]["pressure"],
+                "visibility": data.get("visibility", 10000) / 1000,
+                "clouds": data["clouds"]["all"],
+                "rain": data.get("rain", {}).get("1h", 0),
+                "snow": data.get("snow", {}).get("1h", 0)
+            }
+        else:
+            # If both APIs fail, return hardcoded data
+            return {"temperature": 28, "humidity": 65, "description": "Partly cloudy"}
 
 # Function to get treatment suggestion from Groq API
 def get_treatment_suggestion(disease_name):
