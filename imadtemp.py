@@ -83,8 +83,8 @@ def get_weather_data(location, api_key="9f36996dbcf80db71dcbec83d14459f0"):
     if accuweather_api_key == "YOUR_ACCUWEATHER_API_KEY":
         # Skip AccuWeather API and go directly to OpenWeather API
         # Try with OpenWeather API
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
-        response = requests.get(url)
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={api_key}&units=metric"
+    response = requests.get(url)
         
         # If the location is not found, try appending "Hyderabad" to the location
         if response.status_code != 200 and "hyderabad" not in location.lower():
@@ -99,7 +99,7 @@ def get_weather_data(location, api_key="9f36996dbcf80db71dcbec83d14459f0"):
                 if response.status_code == 200:
                     return response.json(), "Hyderabad"  # Return the data and the fallback location
         
-        if response.status_code == 200:
+    if response.status_code == 200:
             return response.json(), location
         else:
             # If OpenWeather API fails, use a hardcoded weather service for major Indian cities
@@ -827,7 +827,7 @@ if app_mode == get_text("home", "Home"):
     st.header(get_text("plant_disease_recognition", "PLANT DISEASE RECOGNITION SYSTEM"))
     #image_path = r'C:\Users\91824\Downloads\OIP (2).jpeg'
     #image_path=r'C:\Users\mohsi\OneDrive\Desktop\SIH code\home_image.jpeg'
-    st.image("home_page.jpeg", use_container_width =True)
+    st.image("home_page.jpeg", use_container_width=True)
     #st.image(image_path, use_container_width =True)
     st.markdown(get_text("welcome_message", """
     Welcome to the Plant Disease Recognition System! 🌿🔍
@@ -931,7 +931,7 @@ elif app_mode == get_text("weather_monitoring", "Weather Monitoring"):
                 st.write(get_text("high_temp_recommendation", "High temperature alert: Water plants more frequently and provide shade during peak hours."))
             elif temperature < 15:
                 st.write(get_text("low_temp_recommendation", "Low temperature alert: Protect sensitive plants from frost and reduce watering frequency."))
-            else:
+        else:
                 st.write(get_text("normal_temp_recommendation", "Temperature is within the optimal range for most plants."))
             
             # Humidity-based recommendations
