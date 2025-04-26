@@ -35,13 +35,10 @@ languages = {
     "Punjabi": "pa"
 }
 
-# Function to translate text
-def translate_text(text, target_lang):
-    if target_lang == "en":
-        return text
-    
+# Function to translate text using deep-translator
+def translate_text(text, target_language='en'):
     try:
-        translator = GoogleTranslator(source='auto', target=target_lang)
+        translator = GoogleTranslator(source='auto', target=target_language)
         translated = translator.translate(text)
         return translated
     except Exception as e:
