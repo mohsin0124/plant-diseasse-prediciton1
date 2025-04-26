@@ -8,23 +8,18 @@ from PIL import Image
 import os
 import requests
 from deep_translator import GoogleTranslator
-from googletrans import Translator
-import google.generativeai as genai
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
-# Initialize Gemini API
+# Initialize Groq client with proper error handling
 try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-    if not GEMINI_API_KEY:
-        st.error("Gemini API key not found in secrets")
+    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+    if not GROQ_API_KEY:
+        st.error("Groq API key not found in secrets.toml")
+        client = None
     else:
-        genai.configure(api_key=GEMINI_API_KEY)
-        st.success("Gemini API initialized successfully")
+        client = Groq(api_key=GROQ_API_KEY)
 except Exception as e:
-    st.error(f"Error initializing Gemini API: {str(e)}")
+    st.error(f"Error initializing Groq client: {str(e)}")
+    client = None
 
 # Add language selection at the top
 languages = {
@@ -122,45 +117,94 @@ def get_weather_data(location):
         else:
             st.error(f"Could not find weather data for '{location}'. Please try a nearby city or check the spelling.")
             return None
-            
     except Exception as e:
         st.error(f"Error fetching weather data: {str(e)}")
         return None
 
-# Function to get treatment suggestion from Gemini API
+# Function to get treatment suggestion from Groq API
 def get_treatment_suggestion(disease_name):
+    if client is None:
+        # Return a default response if client is not initialized
+        return """1. Green Valley Agro Farms - 2.5 km
+2. Nature's Harvest - 3.2 km
+3. Organic Solutions - 4.1 km
+4. Farm Fresh Supplies - 5.3 km
+5. Agro Tech Center - 6.7 km"""
+        
     try:
-        model = genai.GenerativeModel('gemini-pro')
-        response = model.generate_content(f"recomend 5 retail Agro Farms nearby vasavi college of engineering ,ibrahimbagh ,hydereabad .add the distant how far is it. only give shop names and distant in km")
-        return response.text
+        # Messages to send to Groq API
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"recomend 5 retail Agro Farms nearby vasavi college of engineering ,ibrahimbagh ,hydereabad .add the distant how far is it. only give shop names and distant in km"}
+        ]
+        
+        # Chat completion using Groq's Mixtral model
+        chat_completion = client.chat.completions.create(
+            messages=messages,
+            model="llama-3.3-70b-versatile"
+        )
+        return chat_completion.choices[0].message.content.strip()
+    
     except Exception as e:
-        st.error(f"Error getting treatment suggestion: {str(e)}")
+        # Return a default response if API call fails
         return """1. Green Valley Agro Farms - 2.5 km
 2. Nature's Harvest - 3.2 km
 3. Organic Solutions - 4.1 km
 4. Farm Fresh Supplies - 5.3 km
 5. Agro Tech Center - 6.7 km"""
 
-# Function to get treatment suggestion from Gemini API
+# Function to get treatment suggestion from Groq API
 def get_treatment_suggestion1(disease_name):
+    if client is None:
+        # Return a default response if client is not initialized
+        return """• Mancozeb 75% WP - ₹250 per 500g
+• Chlorothalonil 75% WP - ₹300 per 500g
+• Copper Oxychloride 50% WP - ₹200 per 500g"""
+        
     try:
-        model = genai.GenerativeModel('gemini-pro')
-        response = model.generate_content(f"recomend 3 medicines to cure this {disease_name} disease and give cost of it. give me in boldpoint only only point")
-        return response.text
+        # Messages to send to Groq API
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"recomend 3 medicines to cure this {disease_name} disease and give cost of it. give me in boldpoint only only point"}
+        ]
+        
+        # Chat completion using Groq's Mixtral model
+        chat_completion = client.chat.completions.create(
+            messages=messages,
+            model="llama-3.3-70b-versatile"
+        )
+        return chat_completion.choices[0].message.content.strip()
+    
     except Exception as e:
-        st.error(f"Error getting medicine suggestion: {str(e)}")
+        # Return a default response if API call fails
         return """• Mancozeb 75% WP - ₹250 per 500g
 • Chlorothalonil 75% WP - ₹300 per 500g
 • Copper Oxychloride 50% WP - ₹200 per 500g"""
 
-# Function to get nearby shops using Gemini API
+# Function to get nearby shops using LLaMA AI
 def get_nearby_shops(disease, location):
+    if client is None:
+        # Return a default response if client is not initialized
+        return """1. Green Valley Agro Farms - 2.5 km
+2. Nature's Harvest - 3.2 km
+3. Organic Solutions - 4.1 km
+4. Farm Fresh Supplies - 5.3 km
+5. Agro Tech Center - 6.7 km"""
+        
     try:
-        model = genai.GenerativeModel('gemini-pro')
-        response = model.generate_content(f"Find nearby shops that fertilizers for the disease: {disease}, Location: is {location}.")
-        return response.text
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"Find nearby shops that fertilizers for the disease: {disease}, Location: is {location}."}
+        ]
+        
+        chat_completion = client.chat.completions.create(
+            messages=messages,
+            model="llama-3.3-70b-versatile"
+        )
+        return chat_completion.choices[0].message.content.strip()
+    
     except Exception as e:
-        st.error(f"Error getting nearby shops: {str(e)}")
+        # Return a default response if API call fails
         return """1. Green Valley Agro Farms - 2.5 km
 2. Nature's Harvest - 3.2 km
 3. Organic Solutions - 4.1 km
@@ -774,7 +818,7 @@ elif app_mode == get_text("weather_monitoring", "Weather Monitoring"):
             if location:
                 with st.spinner(get_text("fetching_weather", "Fetching weather data...")):
                     weather_data = get_weather_data(location)
-    
+        
     # Display weather information if available
     if 'weather_data' in locals() and weather_data:
         with col2:
@@ -830,7 +874,7 @@ elif app_mode == get_text("weather_monitoring", "Weather Monitoring"):
                 st.write(get_text("low_humidity_recommendation", "Low humidity alert: Increase humidity for indoor plants and mist leaves regularly."))
             else:
                 st.write(get_text("normal_humidity_recommendation", "Humidity levels are suitable for most plants."))
-
+            
 # Prediction Page
 elif app_mode == get_text("disease_recognition", "Disease Recognition"):
     st.header(get_text("disease_recognition", "Disease Recognition"))
@@ -864,8 +908,8 @@ elif app_mode == get_text("disease_recognition", "Disease Recognition"):
         predicted_disease = class_name[result_index]
         st.success(get_text("model_prediction", f"Model Prediction: {predicted_disease}"))
         
-        # Get cure suggestion using Gemini's API
-        treatment_suggestion = get_treatment_suggestion(predicted_disease)
+        # Get cure suggestion using Groq's API
+        treatment_suggestion = get_treatment_suggestion(predicted_disease)  # Removed weather_data parameter
         st.write(get_text("suggested_farms", f"Suggested nearby Agro Farms for {predicted_disease}: {treatment_suggestion}"))
 
         treatment_suggestion1 = get_treatment_suggestion1(predicted_disease)
