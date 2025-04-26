@@ -11,12 +11,13 @@ from deep_translator import GoogleTranslator
 
 # Initialize Groq client with proper error handling
 try:
-    GROQ_API_KEY = os.environ.get("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")
+    GROQ_API_KEY = "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"  # Your actual API key
     if not GROQ_API_KEY:
-        st.error("Groq API key not found in environment variables")
+        st.error("Groq API key not found")
         client = None
     else:
         client = Groq(api_key=GROQ_API_KEY)
+        st.success("Groq API client initialized successfully")
 except Exception as e:
     st.error(f"Error initializing Groq client: {str(e)}")
     client = None
@@ -84,7 +85,7 @@ def model_prediction(test_image):
 # Function to get weather data using OpenWeather API
 def get_weather_data(location):
     try:
-        # Use the provided OpenWeather API key
+        # Use the provided OpenWeather API key GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
         api_key = "012ef47845678a992ebd6f731235e756"
         
         # First try with the exact location
@@ -125,7 +126,7 @@ def get_weather_data(location):
 # Function to get treatment suggestion from Groq API
 def get_treatment_suggestion(disease_name):
     if client is None:
-        # Return a default response if client is not initialized
+        st.error("Groq API client not initialized")
         return """1. Green Valley Agro Farms - 2.5 km
 2. Nature's Harvest - 3.2 km
 3. Organic Solutions - 4.1 km
@@ -147,7 +148,7 @@ def get_treatment_suggestion(disease_name):
         return chat_completion.choices[0].message.content.strip()
     
     except Exception as e:
-        # Return a default response if API call fails
+        st.error(f"Error getting treatment suggestion: {str(e)}")
         return """1. Green Valley Agro Farms - 2.5 km
 2. Nature's Harvest - 3.2 km
 3. Organic Solutions - 4.1 km
@@ -157,7 +158,7 @@ def get_treatment_suggestion(disease_name):
 # Function to get treatment suggestion from Groq API
 def get_treatment_suggestion1(disease_name):
     if client is None:
-        # Return a default response if client is not initialized
+        st.error("Groq API client not initialized")
         return """• Mancozeb 75% WP - ₹250 per 500g
 • Chlorothalonil 75% WP - ₹300 per 500g
 • Copper Oxychloride 50% WP - ₹200 per 500g"""
@@ -177,27 +178,40 @@ def get_treatment_suggestion1(disease_name):
         return chat_completion.choices[0].message.content.strip()
     
     except Exception as e:
-        # Return a default response if API call fails
+        st.error(f"Error getting medicine suggestion: {str(e)}")
         return """• Mancozeb 75% WP - ₹250 per 500g
 • Chlorothalonil 75% WP - ₹300 per 500g
 • Copper Oxychloride 50% WP - ₹200 per 500g"""
 
 # Function to get nearby shops using LLaMA AI
 def get_nearby_shops(disease, location):
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": f"Find nearby shops that fertilizers for the disease: {disease}, Location: is {location}."}
-    ]
-    
+    if client is None:
+        st.error("Groq API client not initialized")
+        return """1. Green Valley Agro Farms - 2.5 km
+2. Nature's Harvest - 3.2 km
+3. Organic Solutions - 4.1 km
+4. Farm Fresh Supplies - 5.3 km
+5. Agro Tech Center - 6.7 km"""
+        
     try:
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": f"Find nearby shops that fertilizers for the disease: {disease}, Location: is {location}."}
+        ]
+        
         chat_completion = client.chat.completions.create(
             messages=messages,
-            model="llama-3.3-70b-versatile",  # Adjust as per Groq's available models
+            model="llama-3.3-70b-versatile"
         )
         return chat_completion.choices[0].message.content.strip()
     
     except Exception as e:
-        return f"Error: Unable to connect to Groq API. Exception: {str(e)}"
+        st.error(f"Error getting nearby shops: {str(e)}")
+        return """1. Green Valley Agro Farms - 2.5 km
+2. Nature's Harvest - 3.2 km
+3. Organic Solutions - 4.1 km
+4. Farm Fresh Supplies - 5.3 km
+5. Agro Tech Center - 6.7 km"""
 
 # Streamlit App Structure
 # Remove the duplicate sidebar title and app_mode selection
