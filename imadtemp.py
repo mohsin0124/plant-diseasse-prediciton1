@@ -17,13 +17,12 @@ load_dotenv()
 
 # Initialize Gemini API
 try:
-    GEMINI_API_KEY = os.getenv("AIzaSyArHVLej4ZiHLhN9CdeBtfMOGFfTTpeNkM")
+    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
     if not GEMINI_API_KEY:
-        st.error("Gemini API key not found in environment variables")
-        genai.configure(api_key="YOUR_GEMINI_API_KEY")  # Replace with your actual API key
+        st.error("Gemini API key not found in secrets")
     else:
         genai.configure(api_key=GEMINI_API_KEY)
-    st.success("Gemini API initialized successfully")
+        st.success("Gemini API initialized successfully")
 except Exception as e:
     st.error(f"Error initializing Gemini API: {str(e)}")
 
